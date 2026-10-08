@@ -436,25 +436,6 @@ module Pipelined_top_module(
 		.forwarding_src2(forwarding_src2)
 		
 		);
-	
-	 /*
-	 always @(*) begin
-		case(forward_a)
-			2'b00 : forwarding_src1 = ex_mem_alu_result;
-			2'b01 : forwarding_src1 = wb_write_data;
-			2'b10 : forwarding_src1 = id_ex_src1;
-			default : forwarding_src1 = id_ex_src1;
-		endcase
-	end
-
-	always @(*) begin
-		case(forward_b)
-			2'b00 : forwarding_src2 = ex_mem_alu_result;
-			2'b01 : forwarding_src2 = wb_write_data;
-			2'b10 : forwarding_src2 = id_ex_src2;
-			default : forwarding_src2 = id_ex_src2;
-		endcase
-	end	*/
 			
 			
 	hazard_detection hazard_inst(
