@@ -418,8 +418,6 @@ module Pipelined_top_module(
         .reg_file_write_data(wb_write_data)
     );
 	 
-	 //wire [1:0] forward_a;
-	 //wire [1:0] forward_b;
 	 
 	 forwarding_unit forwarding_inst(
 		.id_ex_rs1(id_ex_instruction_code[19:15]),
