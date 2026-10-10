@@ -1,199 +1,220 @@
-# 5-Stage Pipelined RISC-V Processor
+# Five-Stage Pipelined RISC-V Processor in Verilog
 
-A five-stage pipelined RISC-V processor implemented in Verilog HDL, designed to demonstrate instruction pipelining, datapath design, hazard detection, data forwarding, and control-flow handling.
+## Overview
 
-The processor uses a modular architecture with separate instruction and data memories, pipeline registers, an ALU, a register file, and dedicated control logic.
+This project implements a five-stage pipelined RISC-V processor using Verilog HDL. It builds upon my earlier single-cycle RISC-V processor and progresses from a basic pipeline implementation to a design incorporating data forwarding, hazard detection, pipeline stalling, and control-hazard handling.
 
-## Architecture
+The processor follows a five-stage pipeline architecture:
 
-The processor follows the classic five-stage pipeline architecture:
+1. **Instruction Fetch (IF)** – Fetches instructions from instruction memory.
+2. **Instruction Decode (ID)** – Decodes instructions, reads registers, and generates control information.
+3. **Execute (EX)** – Performs ALU operations, evaluates branch conditions, and calculates relevant addresses.
+4. **Memory Access (MEM)** – Performs data-memory read and write operations.
+5. **Write Back (WB)** – Writes the final result back to the register file.
 
-**Instruction Fetch (IF) → Instruction Decode (ID) → Execute (EX) → Memory Access (MEM) → Write Back (WB)**
+The objective is to improve instruction throughput through pipelining while correctly handling dependencies and control-flow changes.
 
-| Stage | Description |
-|---|---|
-| **IF — Instruction Fetch** | Fetches instructions from instruction memory and manages the program counter. |
-| **ID — Instruction Decode** | Decodes instructions, reads register operands, generates immediate values, and produces control signals. |
-| **EX — Execute** | Performs arithmetic and logical operations, evaluates branches, calculates jump targets, and selects forwarded operands. |
-| **MEM — Memory Access** | Performs data-memory reads and writes for load and store instructions. |
-| **WB — Write Back** | Writes ALU results or loaded data back to the register file. |
+## Project Evolution
 
-### Pipeline Registers
+The processor was developed incrementally:
 
-Four pipeline registers separate the five stages:
+- **Stage 1 – Single-Cycle Processor:** Implemented the base RISC-V instruction set in a modular Verilog design.
+- **Stage 2 – Basic Five-Stage Pipeline:** Distributed instruction execution across IF, ID, EX, MEM, and WB stages, with pipeline registers between stages.
+- **Stage 3 – Hazard Handling:** Added forwarding logic, hazard detection, stalling, and branch/jump flush handling to support dependent instructions and control-flow changes.
 
-- **IF/ID:** Stores the fetched instruction and associated information.
-- **ID/EX:** Stores decoded operands, immediate values, register indices, and control signals.
-- **EX/MEM:** Stores execution results, memory controls, and destination-register information.
-- **MEM/WB:** Stores results and control information for register write-back.
+The earlier single-cycle implementation is available here:
 
-## Features
-
-- Five-stage pipelined RISC-V processor
-- Modular and synthesizable Verilog RTL design
-- Separate instruction and data memories
-- Arithmetic Logic Unit (ALU)
-- Register file and immediate generator
-- Control unit and branch decision logic
-- Four inter-stage pipeline registers
-- Data forwarding from later pipeline stages
-- Load-use hazard detection and pipeline stalling
-- Conditional branch handling
-- JAL and JALR jump support
-- Pipeline flushing for branch and jump redirects
-- Functional simulation using Questa Intel FPGA Edition
-- FPGA synthesis and static timing analysis using Intel Quartus Prime
+[Single-Cycle RISC-V Processor – GitHub](https://github.com/NikhilSingh1216/Single-Cycle-RISC-V-Processor)
 
 ## Supported Instructions
 
-The implemented instruction set exercised by the verification program includes:
+The processor implementation covers 37 RV32I instructions across eight categories.
 
-| Format | Instructions |
+### 1. R-Type Instructions — 10
+
+| Instruction | Operation |
 |---|---|
-| **R-Type** | ADD, SUB, AND, OR, XOR, SLL |
-| **I-Type** | ADDI, LW, JALR |
-| **S-Type** | SW |
-| **B-Type** | BEQ |
-| **J-Type** | JAL |
+| ADD | Addition |
+| SUB | Subtraction |
+| SLL | Logical left shift |
+| SLT | Set if signed less than |
+| SLTU | Set if unsigned less than |
+| XOR | Bitwise XOR |
+| SRL | Logical right shift |
+| SRA | Arithmetic right shift |
+| OR | Bitwise OR |
+| AND | Bitwise AND |
 
-The processor includes the corresponding instruction decode, control-signal generation, and immediate-generation logic required by these instruction formats.
+### 2. I-Type ALU Instructions — 6
 
-This list describes the instructions exercised by the current verification program; it does not claim complete RV32I compatibility.
+| Instruction | Operation |
+|---|---|
+| ADDI | Add immediate |
+| SLTI | Set if signed less than immediate |
+| SLTIU | Set if unsigned less than immediate |
+| XORI | XOR immediate |
+| ORI | OR immediate |
+| ANDI | AND immediate |
+
+### 3. I-Type Shift Instructions — 3
+
+| Instruction | Operation |
+|---|---|
+| SLLI | Logical left shift immediate |
+| SRLI | Logical right shift immediate |
+| SRAI | Arithmetic right shift immediate |
+
+### 4. Load Instructions — 5
+
+| Instruction | Operation |
+|---|---|
+| LB | Load byte, sign-extended |
+| LH | Load halfword, sign-extended |
+| LW | Load word |
+| LBU | Load byte, zero-extended |
+| LHU | Load halfword, zero-extended |
+
+### 5. S-Type Store Instructions — 3
+
+| Instruction | Operation |
+|---|---|
+| SB | Store byte |
+| SH | Store halfword |
+| SW | Store word |
+
+### 6. B-Type Branch Instructions — 6
+
+| Instruction | Operation |
+|---|---|
+| BEQ | Branch if equal |
+| BNE | Branch if not equal |
+| BLT | Branch if signed less than |
+| BGE | Branch if signed greater than or equal |
+| BLTU | Branch if unsigned less than |
+| BGEU | Branch if unsigned greater than or equal |
+
+### 7. J-Type Jump Instructions — 2
+
+| Instruction | Operation |
+|---|---|
+| JAL | Jump and link |
+| JALR | Jump and link register |
+
+### 8. U-Type Instructions — 2
+
+| Instruction | Operation |
+|---|---|
+| LUI | Load upper immediate |
+| AUIPC | Add upper immediate to PC |
+
+**Total: 37 instructions.**
+
+## Pipeline Architecture
+
+The design uses pipeline registers to carry instruction data and control signals between consecutive stages:
+
+- `IF/ID`
+- `ID/EX`
+- `EX/MEM`
+- `MEM/WB`
+
+These registers allow different instructions to occupy different pipeline stages during the same clock cycle.
+
+### Register File
+
+The register file is accessed during instruction decode to read source operands and during write-back to update the destination register. The design must preserve correct register values when dependent instructions execute close together.
+
+### Data Memory
+
+The data-memory unit supports byte, halfword, and word stores, along with the implemented load operations. The combinational read logic assigns a default value to `data_out` to avoid unintended latch inference.
 
 ## Hazard Handling
 
-### Data Forwarding
+### 1. Data Forwarding
 
-The forwarding unit detects dependencies between instructions in different pipeline stages and selects the most recent available operand from later stages when possible.
+A forwarding unit resolves supported data dependencies by selecting a more recent result from a later pipeline stage rather than always waiting for the register file to be updated.
 
-Forwarding paths use results from the EX/MEM and MEM/WB stages to resolve common read-after-write (RAW) dependencies and reduce unnecessary stalls.
+This reduces unnecessary pipeline stalls for dependencies that can be resolved through forwarding.
 
-### Load-Use Hazard Detection
+### 2. Hazard Detection and Stalling
 
-A load instruction produces its data after the memory-access stage. When a following instruction depends on that result, the hazard detection unit inserts the required stall so the dependent instruction receives the correct operand.
+Hazard detection identifies dependencies that cannot be resolved immediately through forwarding. The pipeline can stall when required to preserve correct instruction execution, including load-use dependencies.
 
-### Branch Handling
+### 3. Branch and Jump Handling
 
-The branch unit evaluates conditional branch instructions using the relevant operands and comparison logic.
+Branch and jump instructions change the normal sequential flow of instruction fetching. The implementation includes branch/jump control and pipeline flush handling to prevent incorrectly fetched instructions from affecting architectural results when control flow changes.
 
-The processor handles taken and not-taken branches and flushes instructions fetched along an incorrect control-flow path when a redirect occurs.
+## Verification and Simulation
 
-### Jump Handling
+The processor was developed and verified incrementally using Verilog simulation.
 
-- **JAL:** Performs a PC-relative jump and saves the return address.
-- **JALR:** Performs a register-indirect jump and saves the return address.
+### Functional Verification
 
-Pipeline flushing prevents incorrectly fetched instructions from affecting architectural state after control-flow changes.
+- The single-cycle implementation was verified for the supported instruction categories.
+- The basic five-stage pipeline was tested with all 37 supported instructions.
+- A dedicated test program was used to exercise forwarding, data hazards, branch/jump behavior, and pipeline flushing in the enhanced pipeline.
+- The dedicated hazard-handling testbench reported **ALL TESTS PASSED** after the final reported data-memory correction.
 
-## Project Structure
+The dedicated hazard test program was used to check specific pipeline behavior; it should not be interpreted as a single exhaustive test of all 37 instructions in the enhanced pipeline.
 
-```text
-5-Stage-Pipelined-RISC-V-Processor/
-│
-├── Pipelined_top_module.v
-├── alu.v
-├── branch_unit.v
-├── control_unit.v
-├── data_memory.v
-├── ex_mem_reg.v
-├── forwarding_unit.v
-├── hazard_detection.v
-├── id_ex_reg.v
-├── if_id_reg.v
-├── immediate_generator.v
-├── instruction_fetch_unit.v
-├── instruction_memory_unit.v
-├── mem_wb_reg.v
-├── register_file.v
-├── write_back.v
-│
-├── Pipelined_risc_v.qpf
-├── Pipelined_risc_v.qsf
-├── Pipelined_risc_v.sdc
-│
-└── README.md
-```
+The testbench used for this verification is not included in this repository.
 
-*This structure lists the processor RTL and Quartus project files. Adjust the listing to match the files actually committed to the repository.*
+## FPGA Timing Analysis
 
-## Simulation and Verification
+Static timing analysis was performed using Intel Quartus Prime and a 15 ns clock constraint.
 
-The processor was functionally verified in Questa Intel FPGA Edition using a Verilog testbench.
-
-The verification program covered the following scenarios:
-
-- Arithmetic and logical instruction execution
-- Register write-back and zero-register behavior
-- Data forwarding between dependent instructions
-- Load and store operations
-- Load-use hazard handling
-- Taken and not-taken conditional branches
-- JAL and JALR jump behavior
-- Pipeline flushing following control-flow changes
-
-**Result:** All test cases in the verification testbench passed after the register-file forwarding and data-memory latch issues were addressed.
-
-The testbench used for verification is not included in this repository.
-
-## FPGA Implementation and Timing Analysis
-
-The design was compiled and analyzed using Intel Quartus Prime. Static timing analysis was performed using the reported slow timing model at 1100 mV and 85°C.
-
-### Timing Results
+### Reported Timing Results
 
 | Parameter | Result |
 |---|---:|
-| Clock period constraint | 15 ns |
-| Constrained clock frequency | 66.67 MHz |
+| Target clock period | 15.000 ns |
+| Target clock frequency | 66.67 MHz |
 | Maximum operating frequency (Fmax) | 78.65 MHz |
-| Worst-case setup slack | +2.286 ns |
-| Worst-case hold slack | +0.348 ns |
-| Inferred latches reported by `check_timing` | 0 |
-| No-clock findings reported by `check_timing` | 0 |
+| Worst setup slack | +2.286 ns |
+| Worst hold slack | +0.348 ns |
+| Critical-path data delay | 12.455 ns |
+| Timing model | Slow, 1100 mV, 85°C |
 
-The constrained clock frequency is calculated from the specified clock period:
+### Clock Constraint
 
-\[
-f_{\text{clock}}=\frac{1}{T_{\text{clock}}}
-=\frac{1}{15\text{ ns}}
-\approx66.67\text{ MHz}
-\]
-
-The reported Fmax of 78.65 MHz exceeds the constrained clock frequency. The positive setup and hold slack values indicate that the analyzed paths meet the corresponding timing requirements under the current constraints.
-
-### Timing Constraints
-
-The project uses the following SDC clock constraint:
+The clock was constrained using the following SDC command:
 
 ```tcl
 create_clock -name clk -period 15.000 [get_ports {clk}]
 ```
 
-This defines a 15 ns clock period for the top-level `clk` input.
+### Critical-Path Analysis
 
-**Timing-analysis note:** The latest timing checks report zero inferred latches and zero no-clock findings. However, external input/output delay constraints remain incomplete. The reported Fmax and slack values therefore describe the paths analyzed under the current constraints and should not be interpreted as proof that every external interface path is fully constrained.
+The reported worst setup path was:
 
-## Critical Path Analysis
+- **Start point:** `mem_wb_reg:mem_wb_inst|mem_wb_rd[0]`
+- **End point:** `id_ex_reg:id_ex_inst|id_ex_alu_control[4]`
+- **Data arrival time:** 16.501 ns
+- **Data required time:** 18.787 ns
+- **Setup slack:** +2.286 ns
 
-The detailed timing report identifies forwarding and branch-comparison logic among the elements on a reported critical setup path.
+The timing report shows logic involving the forwarding unit and branch-related comparison/control logic along the reported path.
 
-These paths are useful areas to investigate for potential timing optimization because they can contribute to the combinational delay between pipeline registers.
+The positive setup and hold slack values indicate that the reported worst paths meet their respective timing requirements under the selected timing model and applied constraints.
 
-Further optimization should be guided by the latest detailed timing reports and performed without compromising functional correctness.
+**Timing limitation:** The timing summary also reported missing output-delay constraints for many output ports. Consequently, these results describe the reported constrained paths and should not be treated as proof that all external input/output paths are fully constrained.
+
+## Tools and Technologies
+
+- Verilog HDL
+- Questa Intel FPGA Edition / Questa simulation environment
+- Intel Quartus Prime
+- FPGA static timing analysis
+- SDC clock constraints
 
 ## Future Improvements
 
-- Expand instruction coverage and work toward broader RV32I support.
-- Add automated regression tests for additional data and control hazards.
-- Verify memory addressing and boundary conditions.
-- Investigate forwarding and branch-comparison paths for timing optimization.
-- Improve timing constraints for the external input/output interfaces.
-- Compare single-cycle and pipelined implementations using consistent FPGA settings.
-- Evaluate FPGA resource utilization, power, and performance.
-- Perform additional hardware validation on a compatible FPGA board.
+- Improve critical-path delay through logic optimization.
+- Add complete input and output timing constraints.
+- Compare area, maximum frequency, and timing slack against the single-cycle implementation.
+- Expand automated regression testing for instruction combinations and pipeline hazards.
+- Evaluate additional performance optimizations while maintaining functional correctness.
 
 ## Author
 
-**Nikhil Singh**
-
-Developed as a processor-design project to explore RISC-V architecture, pipelining, datapath implementation, hazard detection, data forwarding, and FPGA timing analysis.
+Nikhil Singh
